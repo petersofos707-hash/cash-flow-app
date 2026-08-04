@@ -185,6 +185,28 @@ export interface Subscription {
   notes: string;
 }
 
+export type PayFrequency = "weekly" | "fortnightly" | "monthly";
+
+export interface PayAllocationGoalSplit {
+  goalId: string;
+  cents: number;
+}
+
+export interface PayAllocation {
+  id: string;
+  payDate: string;
+  payCents: number;
+  cadence: PayFrequency;
+  billsCents: number;
+  investmentsCents: number;
+  savingsCents: number;
+  discretionaryCents: number;
+  goalSplits: PayAllocationGoalSplit[];
+  applied: boolean;
+  appliedAt?: string;
+  createdAt: string;
+}
+
 export interface NetWorthSnapshot {
   date: string;
   assetsCents: number;
@@ -234,6 +256,7 @@ export interface FinanceState {
   recurring: RecurringTransaction[];
   subscriptions: Subscription[];
   netWorthSnapshots: NetWorthSnapshot[];
+  payAllocations: PayAllocation[];
   reviews: MonthlyReview[];
   notifications: AppNotification[];
   preferences: UserPreferences;

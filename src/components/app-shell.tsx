@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   AreaChart,
   ArrowLeftRight,
+  Banknote,
   Bell,
   ChartNoAxesCombined,
   CircleDollarSign,
@@ -35,6 +36,7 @@ const navItems = [
   { href: "/reports", label: "Reports", icon: ClipboardCheck },
   { href: "/accounts", label: "Accounts", icon: WalletCards },
   { href: "/monthly-review", label: "Monthly Review", icon: Landmark },
+  { href: "/pay-day", label: "Pay Day", icon: Banknote },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

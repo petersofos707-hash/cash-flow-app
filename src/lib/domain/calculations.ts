@@ -1,4 +1,12 @@
-import type { FinanceState, InvestmentHolding, SavingsGoal, Transaction } from "./types";
+import type {
+  FinanceState,
+  InvestmentHolding,
+  PayAllocationGoalSplit,
+  PayFrequency,
+  RecurringTransaction,
+  SavingsGoal,
+  Transaction,
+} from "./types";
 
 export function isEligible(transaction: Transaction) {
   return (
@@ -209,4 +217,195 @@ export function monthlyEquivalent(
   if (frequency === "annual") return Math.round(amountCents / 12);
   if (frequency === "quarterly") return Math.round(amountCents / 3);
   return amountCents;
+}
+
+// --- Pay-day allocation -----------------------------------------------------
+// Works out, for a given pay amount, how much should go to bills (essential
+// recurring costs), savings goals, investments, and what is left over as
+// discretionary spending — plus a suggested split of the savings portion
+// across active goals.
+
+export function periodsPerMonth(cadence: PayFrequency) {
+  if (cadence === "weekly") return 52 / 12;
+  if (cadence === "fortnightly") return 26 / 12;
+  return 1;
+}
+
+export function detectPayCadence(state: FinanceState, today = new Date()): PayFrequency {
+  const incomeCategoryIds = new Set(
+    state.categories
+      .filter((category) => category.kind === "income")
+      .map((category) => category.id),
+  );
+  // Only recurring income (payroll-style deposits) informs cadence — one-off
+  // or irregular income in the same category would otherwise skew the gaps.
+  const incomeDates = state.transactions
+    .filter(
+      (transaction) =>
+        incomeCategoryIds.has(transaction.categoryId) &&
+        transaction.amountCents > 0 &&
+        transaction.recurring &&
+        !transaction.transfer,
+    )
+    .map((transaction) => transaction.transactionDate)
+    .sort();
+  void today;
+  if (incomeDates.length < 2) return "fortnightly";
+  const gaps: number[] = [];
+  for (let index = 1; index < incomeDates.length; index += 1) {
+    const days =
+      (new Date(`${incomeDates[index]}T12:00:00`).getTime() -
+        new Date(`${incomeDates[index - 1]}T12:00:00`).getTime()) /
+      86_400_000;
+    if (days > 0) gaps.push(days);
+  }
+  if (gaps.length === 0) return "fortnightly";
+  const averageDays = gaps.reduce((sum, days) => sum + days, 0) / gaps.length;
+  if (averageDays <= 10) return "weekly";
+  if (averageDays <= 20) return "fortnightly";
+  return "monthly";
+}
+
+export function latestPayCents(state: FinanceState) {
+  const incomeCategoryIds = new Set(
+    state.categories
+      .filter((category) => category.kind === "income")
+      .map((category) => category.id),
+  );
+  const recurringIncome = [...state.transactions]
+    .filter(
+      (transaction) =>
+        incomeCategoryIds.has(transaction.categoryId) &&
+        transaction.amountCents > 0 &&
+        transaction.recurring &&
+        !transaction.transfer,
+    )
+    .sort((a, b) => b.transactionDate.localeCompare(a.transactionDate));
+  if (recurringIncome.length > 0) return recurringIncome[0].amountCents;
+  const anyIncome = [...state.transactions]
+    .filter(
+      (transaction) =>
+        incomeCategoryIds.has(transaction.categoryId) &&
+        transaction.amountCents > 0 &&
+        !transaction.transfer,
+    )
+    .sort((a, b) => b.transactionDate.localeCompare(a.transactionDate))[0];
+  return anyIncome?.amountCents ?? 0;
+}
+
+export function recurringMonthlyEquivalent(
+  amountCents: number,
+  frequency: RecurringTransaction["frequency"],
+) {
+  switch (frequency) {
+    case "weekly":
+      return Math.round((amountCents * 52) / 12);
+    case "fortnightly":
+      return Math.round((amountCents * 26) / 12);
+    case "quarterly":
+      return Math.round(amountCents / 3);
+    case "annual":
+      return Math.round(amountCents / 12);
+    default:
+      return amountCents;
+  }
+}
+
+export function billsForCadence(state: FinanceState, cadence: PayFrequency) {
+  const essentialCategoryIds = new Set(
+    state.categories
+      .filter((category) => category.kind === "essential")
+      .map((category) => category.id),
+  );
+  const items = state.recurring.filter(
+    (item) => item.active && essentialCategoryIds.has(item.categoryId),
+  );
+  const factor = periodsPerMonth(cadence);
+  const breakdown = items.map((item) => {
+    const monthlyCents = recurringMonthlyEquivalent(item.expectedCents, item.frequency);
+    return {
+      id: item.id,
+      merchant: item.merchant,
+      monthlyCents,
+      perPeriodCents: Math.round(monthlyCents / factor),
+    };
+  });
+  return {
+    perPeriodCents: breakdown.reduce((sum, item) => sum + item.perPeriodCents, 0),
+    items: breakdown,
+  };
+}
+
+export function savingsNeededForCadence(
+  state: FinanceState,
+  cadence: PayFrequency,
+  today = new Date(),
+) {
+  const factor = periodsPerMonth(cadence);
+  const active = state.goals.filter((goal) => goal.status === "active");
+  const perGoal = active.map((goal) => {
+    const forecast = goalForecast(goal, today);
+    return {
+      goalId: goal.id,
+      perPeriodCents: Math.max(Math.round(forecast.monthlyRequiredCents / factor), 0),
+    };
+  });
+  return {
+    perPeriodCents: perGoal.reduce((sum, item) => sum + item.perPeriodCents, 0),
+    perGoal,
+  };
+}
+
+export function calculatePayAllocation(
+  state: FinanceState,
+  payCents: number,
+  cadence: PayFrequency,
+  today = new Date(),
+) {
+  const bills = billsForCadence(state, cadence);
+  const savings = savingsNeededForCadence(state, cadence, today);
+  const factor = periodsPerMonth(cadence);
+  const plan = state.plans[0];
+  const investmentsCents = plan ? Math.round(plan.intendedInvestmentCents / factor) : 0;
+  const committedCents = bills.perPeriodCents + savings.perPeriodCents + investmentsCents;
+  const discretionaryCents = Math.max(payCents - committedCents, 0);
+  const shortfallCents = Math.max(committedCents - payCents, 0);
+  return {
+    billsCents: bills.perPeriodCents,
+    billsBreakdown: bills.items,
+    savingsCents: savings.perPeriodCents,
+    savingsBreakdown: savings.perGoal,
+    investmentsCents,
+    discretionaryCents,
+    shortfallCents,
+  };
+}
+
+export function suggestGoalSplit(
+  goals: SavingsGoal[],
+  totalCents: number,
+  today = new Date(),
+): PayAllocationGoalSplit[] {
+  const active = goals.filter((goal) => goal.status === "active");
+  if (active.length === 0 || totalCents <= 0) return [];
+  const priorityWeight: Record<SavingsGoal["priority"], number> = { high: 3, medium: 2, low: 1 };
+  const weighted = active.map((goal) => {
+    const forecast = goalForecast(goal, today);
+    // Goals further behind their required pace (relative to what is currently
+    // planned, expressed as a monthly amount so different contribution
+    // frequencies compare fairly) pull a larger share of this pay's pool.
+    const plannedMonthlyCents =
+      goal.plannedContributionCents * periodsPerMonth(goal.contributionFrequency);
+    const behindCents = Math.max(forecast.monthlyRequiredCents - plannedMonthlyCents, 0);
+    const weight = priorityWeight[goal.priority] * (1 + behindCents / 20_000);
+    return { goal, weight };
+  });
+  const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
+  let allocated = 0;
+  return weighted.map(({ goal, weight }, index) => {
+    const isLast = index === weighted.length - 1;
+    const cents = isLast ? totalCents - allocated : Math.round((weight / totalWeight) * totalCents);
+    allocated += cents;
+    return { goalId: goal.id, cents: Math.max(cents, 0) };
+  });
 }

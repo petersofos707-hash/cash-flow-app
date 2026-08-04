@@ -2086,3 +2086,99 @@ td small {
     break-inside: avoid;
   }
 }
+
+/* Pay day allocation */
+.goal-split-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+.goal-split-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.goal-split-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+.goal-split-row strong {
+  font-size: 13px;
+}
+.goal-split-row small {
+  color: var(--muted);
+  font-size: 9px;
+}
+.goal-split-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.goal-split-input span {
+  color: var(--muted);
+}
+.goal-split-input input {
+  border: 0;
+  width: 90px;
+  font-size: 13px;
+  background: transparent;
+}
+.goal-split-input input:focus {
+  outline: none;
+}
+.pay-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 8px;
+}
+.pay-history-row {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.pay-history-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+.pay-history-top strong {
+  display: block;
+  font-size: 13px;
+}
+.pay-history-top span {
+  color: var(--muted);
+  font-size: 10px;
+}
+.pay-history-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pay-history-bars {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.definition-list.compact > div {
+  padding: 6px 0;
+}
+.pay-history-goals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}

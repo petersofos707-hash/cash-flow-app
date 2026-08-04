@@ -11,6 +11,7 @@ import type {
   Liability,
   ManualAsset,
   MonthlyReview,
+  PayAllocation,
   SavingsGoal,
   Transaction,
 } from "@/lib/domain/types";
@@ -30,6 +31,8 @@ interface FinanceContextValue {
   addGoal: (goal: Omit<SavingsGoal, "id" | "createdAt">) => void;
   updateGoal: (id: string, patch: Partial<SavingsGoal>) => void;
   contributeToGoal: (id: string, cents: number) => void;
+  recordPayAllocation: (allocation: Omit<PayAllocation, "id" | "createdAt">) => void;
+  removePayAllocation: (id: string) => void;
   addHolding: (holding: Omit<InvestmentHolding, "id" | "archived">) => void;
   updateHolding: (id: string, patch: Partial<InvestmentHolding>) => void;
   addAccount: (account: Omit<Account, "id">) => void;
@@ -159,6 +162,38 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
             };
           }),
         })),
+      recordPayAllocation: (allocation) =>
+        update((current) => {
+          const record: PayAllocation = {
+            ...allocation,
+            id: crypto.randomUUID(),
+            createdAt: new Date().toISOString(),
+          };
+          const goals = allocation.applied
+            ? current.goals.map((goal) => {
+                const split = allocation.goalSplits.find((item) => item.goalId === goal.id);
+                if (!split) return goal;
+                const currentCents = Math.min(goal.currentCents + split.cents, goal.targetCents);
+                return {
+                  ...goal,
+                  currentCents,
+                  status: currentCents >= goal.targetCents ? "completed" : goal.status,
+                  completedAt:
+                    currentCents >= goal.targetCents ? new Date().toISOString() : goal.completedAt,
+                };
+              })
+            : current.goals;
+          return {
+            ...current,
+            goals,
+            payAllocations: [record, ...current.payAllocations],
+          };
+        }),
+      removePayAllocation: (id) =>
+        update((current) => ({
+          ...current,
+          payAllocations: current.payAllocations.filter((item) => item.id !== id),
+        })),
       addHolding: (holding) =>
         update((current) => ({
           ...current,
@@ -251,6 +286,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           recurring: [],
           subscriptions: [],
           netWorthSnapshots: [],
+          payAllocations: [],
           reviews: [],
           notifications: [],
           bankConnection: { ...current.bankConnection, status: "disconnected" },

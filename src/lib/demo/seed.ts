@@ -781,6 +781,25 @@ export const demoSeed: FinanceState = {
     { date: "2026-06-30", assetsCents: 7170000, liabilitiesCents: 2940000, netWorthCents: 4230000 },
     { date: "2026-07-31", assetsCents: 8200000, liabilitiesCents: 2951430, netWorthCents: 5248570 },
   ],
+  payAllocations: [
+    {
+      id: "pay-2026-07-30",
+      payDate: "2026-07-30",
+      payCents: 324000,
+      cadence: "fortnightly",
+      billsCents: 53800,
+      investmentsCents: 18500,
+      savingsCents: 51300,
+      discretionaryCents: 200400,
+      goalSplits: [
+        { goalId: "goal-emergency", cents: 35100 },
+        { goalId: "goal-travel", cents: 16200 },
+      ],
+      applied: true,
+      appliedAt: updatedAt,
+      createdAt: "2026-07-30T06:00:00.000Z",
+    },
+  ],
   reviews: [],
   notifications: [
     {
