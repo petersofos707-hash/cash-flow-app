@@ -68,7 +68,11 @@ export function DashboardPage() {
       <PageHeader
         eyebrow="Financial overview"
         title="Your money, in one clear view"
-        description="A practical snapshot of cash flow, goals and wealth building using fictional demonstration data."
+        description={
+          state.fictional
+            ? "A practical snapshot of cash flow, goals and wealth building using fictional demonstration data."
+            : "A practical snapshot of cash flow, goals and wealth building."
+        }
         actions={
           <>
             <select aria-label="Dashboard date range" defaultValue="financial-year">

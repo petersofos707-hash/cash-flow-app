@@ -243,7 +243,7 @@ export interface UserPreferences {
 }
 
 export interface FinanceState {
-  fictional: true;
+  fictional: boolean;
   accounts: Account[];
   categories: Category[];
   transactions: Transaction[];
@@ -265,6 +265,6 @@ export interface FinanceState {
     institution: string;
     status: "connected" | "expired" | "disconnected";
     lastSyncedAt: string;
-    environment: "synthetic-demo";
+    environment: "synthetic-demo" | "live";
   };
 }

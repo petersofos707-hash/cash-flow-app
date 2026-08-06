@@ -76,9 +76,11 @@ function ShellContent({ children, email }: { children: React.ReactNode; email: s
             <X size={20} />
           </button>
         </div>
-        <div className="demo-badge">
-          <span /> Fictional demo data
-        </div>
+        {state.fictional && (
+          <div className="demo-badge">
+            <span /> Fictional demo data
+          </div>
+        )}
         <nav className="nav-list">
           {navItems.map(({ href, label, icon: Icon }) => (
             <Link

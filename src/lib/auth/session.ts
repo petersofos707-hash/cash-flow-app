@@ -14,7 +14,7 @@ function signingKey() {
 export interface AppUser {
   id: string;
   email: string;
-  mode: "demo" | "supabase";
+  mode: "demo" | "supabase" | "postgres";
 }
 
 export async function createMagicToken(email: string) {
@@ -34,8 +34,8 @@ export async function verifyMagicToken(token: string) {
   return payload.email;
 }
 
-export async function signDemoSession(email: string) {
-  return new SignJWT({ email, mode: "demo" })
+export async function signDemoSession(email: string, mode: "demo" | "postgres" = "demo") {
+  return new SignJWT({ email, mode })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(DEMO_USER_ID)
     .setIssuedAt()
@@ -43,8 +43,8 @@ export async function signDemoSession(email: string) {
     .sign(signingKey());
 }
 
-export async function createDemoSession(email: string) {
-  const token = await signDemoSession(email);
+export async function createDemoSession(email: string, mode: "demo" | "postgres" = "demo") {
+  const token = await signDemoSession(email, mode);
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -60,8 +60,14 @@ export async function readDemoSessionToken(token?: string): Promise<AppUser | nu
     const candidate = token ?? (await cookies()).get(SESSION_COOKIE)?.value;
     if (!candidate) return null;
     const { payload } = await jwtVerify(candidate, signingKey(), { algorithms: ["HS256"] });
-    if (!payload.sub || typeof payload.email !== "string" || payload.mode !== "demo") return null;
-    return { id: payload.sub, email: payload.email, mode: "demo" };
+    if (
+      !payload.sub ||
+      typeof payload.email !== "string" ||
+      (payload.mode !== "demo" && payload.mode !== "postgres")
+    ) {
+      return null;
+    }
+    return { id: payload.sub, email: payload.email, mode: payload.mode };
   } catch {
     return null;
   }

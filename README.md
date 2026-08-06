@@ -82,6 +82,30 @@ Set-Location "E:\cash-flow-app"
 
 The reset command applies `supabase/migrations/` and then `supabase/seed.sql`. The browser demo seed is separate and can be reset in Settings.
 
+## Deploying with a real Postgres backend
+
+Set `APP_DATA_MODE=postgres` (and `NEXT_PUBLIC_APP_DATA_MODE=postgres`) to run
+against a real Postgres database instead of demo mode's browser-local data.
+Any Postgres-compatible database works (Timescale Cloud, Render Postgres,
+plain Postgres) — Supabase is not required for this mode. Auth stays the
+app's own signed-cookie, single-approved-email session; no separate auth
+provider is needed either.
+
+1. Provision a Postgres database and copy its connection string into
+   `DATABASE_URL`.
+2. Apply the schema once: `DATABASE_URL=... npm run db:migrate`. This runs
+   every file in `db/migrations/` in order; each one is safe to re-run.
+3. Set `APP_DATA_MODE=postgres`, `NEXT_PUBLIC_APP_DATA_MODE=postgres`,
+   `APPROVED_EMAIL`, `APP_SESSION_SECRET` and `APP_URL` on your host.
+4. Deploy the app as a normal Next.js server (`npm run build && npm run
+start`) — Render, Railway, Fly.io or any Node host works.
+
+There's no email-sending wired up yet: sign-in shows the magic link directly
+on the confirmation screen instead of emailing it, the same as demo mode.
+"Reset fictional demo" is hidden in this mode; "Permanently delete finance
+data" clears transactional data from the database and keeps categories,
+rules and preferences.
+
 ## Documentation
 
 - [Architecture](docs/architecture.md)

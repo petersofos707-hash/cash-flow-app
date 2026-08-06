@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createMagicToken } from "@/lib/auth/session";
-import { getServerEnv, isDemoMode } from "@/lib/env";
+import { getServerEnv, usesSignedSession } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
 const inputSchema = z.object({ email: z.email().transform((value) => value.toLowerCase()) });
@@ -16,10 +16,13 @@ export async function POST(request: Request) {
       { status: 403 },
     );
   }
-  if (isDemoMode()) {
+  if (usesSignedSession()) {
     const token = await createMagicToken(parsed.data.email);
     return Response.json({
-      message: "Local demo link prepared. No email was sent.",
+      message:
+        env.APP_DATA_MODE === "postgres"
+          ? "Sign-in link prepared. No email was sent — open the link below."
+          : "Local demo link prepared. No email was sent.",
       demoLink: `/auth/confirm?token=${encodeURIComponent(token)}`,
     });
   }

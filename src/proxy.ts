@@ -16,7 +16,9 @@ export async function proxy(request: NextRequest) {
   const isPublic = publicPaths.some(
     (publicPath) => path === publicPath || path.startsWith(`${publicPath}/`),
   );
-  if ((process.env.APP_DATA_MODE ?? "demo") === "demo") {
+  // "demo" and "postgres" modes both rely on the app's own signed-cookie
+  // session; only "supabase" mode hands off to Supabase's session proxy.
+  if ((process.env.APP_DATA_MODE ?? "demo") !== "supabase") {
     const session = await readDemoSessionToken(request.cookies.get(SESSION_COOKIE)?.value);
     if (!isPublic && !session) return NextResponse.redirect(new URL("/login", request.url));
     if (path === "/login" && session)

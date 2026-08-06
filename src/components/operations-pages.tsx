@@ -389,7 +389,11 @@ export function AccountsPage() {
           <div>
             <span className="eyebrow">Bank connection</span>
             <h2>{state.bankConnection.institution}</h2>
-            <p>Fictional Basiq-compatible connection architecture</p>
+            <p>
+              {state.fictional
+                ? "Fictional Basiq-compatible connection architecture"
+                : "Basiq-compatible connection architecture"}
+            </p>
           </div>
           <StatusPill tone={state.bankConnection.status === "connected" ? "positive" : "warning"}>
             {state.bankConnection.status}
@@ -397,7 +401,8 @@ export function AccountsPage() {
         </div>
         <div className="connection-meta">
           <span>
-            <b>Environment</b>Synthetic demo
+            <b>Environment</b>
+            {state.fictional ? "Synthetic demo" : "Live"}
           </span>
           <span>
             <b>Last sync</b>
@@ -882,34 +887,41 @@ export function SettingsPage() {
                 <button className="secondary-button" onClick={exportData}>
                   <Download size={16} /> Export complete JSON
                 </button>
-                <button className="secondary-button" onClick={resetDemo}>
-                  <RotateCcw size={16} /> Reset fictional demo
-                </button>
+                {state.fictional && (
+                  <button className="secondary-button" onClick={resetDemo}>
+                    <RotateCcw size={16} /> Reset fictional demo
+                  </button>
+                )}
                 <button
                   className="danger-button"
                   onClick={() => {
-                    if (
-                      window.confirm(
-                        "Delete all browser-local fictional finance data? This cannot be undone.",
-                      )
-                    ) {
+                    const message = state.fictional
+                      ? "Delete all browser-local fictional finance data? This cannot be undone."
+                      : "Permanently delete all accounts, transactions, goals and other finance records? This cannot be undone.";
+                    if (window.confirm(message)) {
                       deleteAllData();
                       setDeleted(true);
                     }
                   }}
                 >
-                  <Trash2 size={16} /> Permanently delete local data
+                  <Trash2 size={16} />{" "}
+                  {state.fictional
+                    ? "Permanently delete local data"
+                    : "Permanently delete finance data"}
                 </button>
               </div>
               {deleted && (
                 <p className="saved-message">
-                  <Check size={16} /> Browser-local financial records deleted.
+                  <Check size={16} />{" "}
+                  {state.fictional
+                    ? "Browser-local financial records deleted."
+                    : "Finance records deleted from the database."}
                 </p>
               )}
               <p className="privacy-copy">
-                In production, deletion requires re-authentication, disconnects Basiq, removes
-                stored provider tokens and deletes finance rows through the server-side deletion
-                workflow. Backups and their retention are governed by your Supabase plan.
+                {state.fictional
+                  ? "In production, deletion requires re-authentication, disconnects Basiq, removes stored provider tokens and deletes finance rows through the server-side deletion workflow. Backups and their retention are governed by your database provider's plan."
+                  : "This clears accounts, transactions, goals, investments, liabilities, assets and history. Categories, rules and preferences are kept. There is no re-authentication step yet, so treat this button carefully."}
               </p>
             </div>
           </Card>
@@ -919,7 +931,9 @@ export function SettingsPage() {
               <div className="diagnostic-list">
                 <div>
                   <span>Application mode</span>
-                  <StatusPill tone="positive">Synthetic demo</StatusPill>
+                  <StatusPill tone="positive">
+                    {state.fictional ? "Synthetic demo" : "Postgres (live)"}
+                  </StatusPill>
                 </div>
                 <div>
                   <span>Supabase</span>

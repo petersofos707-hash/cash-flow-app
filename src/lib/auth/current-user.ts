@@ -1,13 +1,15 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
-import { getServerEnv, isDemoMode } from "@/lib/env";
+import { getServerEnv, usesSignedSession } from "@/lib/env";
 import { readDemoSessionToken, type AppUser } from "./session";
 import { createClient } from "@/lib/supabase/server";
 
 export async function getCurrentUser(): Promise<AppUser | null> {
   const env = getServerEnv();
-  if (isDemoMode()) {
+  // "demo" and "postgres" modes both use the app's own signed-cookie
+  // session; only "supabase" mode delegates to Supabase Auth.
+  if (usesSignedSession()) {
     const user = await readDemoSessionToken();
     return user?.email.toLowerCase() === env.APPROVED_EMAIL.toLowerCase() ? user : null;
   }

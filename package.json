@@ -16,7 +16,8 @@
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
-    "supabase:reset": "supabase db reset"
+    "supabase:reset": "supabase db reset",
+    "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.4",
@@ -25,6 +26,7 @@
     "lucide-react": "1.28.0",
     "next": "16.2.12",
     "papaparse": "5.5.4",
+    "postgres": "^3.4.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "3.10.1",

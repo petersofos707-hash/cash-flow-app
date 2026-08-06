@@ -1,20 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, signDemoSession, verifyMagicToken } from "@/lib/auth/session";
-import { getServerEnv, isDemoMode } from "@/lib/env";
+import { getServerEnv, usesSignedSession } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   const appUrl = getServerEnv().APP_URL;
   const errorUrl = new URL("/login?error=invalid-link", appUrl);
   try {
-    if (isDemoMode()) {
+    if (usesSignedSession()) {
       const token = request.nextUrl.searchParams.get("token");
       if (!token) return NextResponse.redirect(errorUrl);
       const email = await verifyMagicToken(token);
       if (email.toLowerCase() !== getServerEnv().APPROVED_EMAIL.toLowerCase())
         return NextResponse.redirect(errorUrl);
+      const sessionMode = getServerEnv().APP_DATA_MODE === "postgres" ? "postgres" : "demo";
       const response = NextResponse.redirect(new URL("/dashboard", appUrl));
-      response.cookies.set(SESSION_COOKIE, await signDemoSession(email), {
+      response.cookies.set(SESSION_COOKIE, await signDemoSession(email, sessionMode), {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
